@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'DatabaseHelper.dart';
+import 'NativeBridge.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  NativeBridge.setupMethodChannel();
   runApp(MyApp());
 }
 
@@ -27,7 +31,7 @@ class _FlutterFormScreenState extends State<FlutterFormScreen> {
   final Map<String, dynamic> formJson = {
     "formFields": {
       "firstName": {"label": "First Name", "type": "TEXT", "required": true},
-      "age": {"label": "Age", "type": "NUMBER", "required": false},
+      "age": {"label": "Age", "type": "TEXT", "required": false},
     }
   };
 
@@ -39,14 +43,27 @@ class _FlutterFormScreenState extends State<FlutterFormScreen> {
     }
   }
 
-  void submitForm() {
+  void submitForm() async {
     final formData = <String, dynamic>{};
     formJson['formFields'].forEach((key, value) {
       formData[key] = controllers[key]?.text;
     });
 
-    // Send data back to Android via MethodChannel
-    platform.invokeMethod("submitFormJson", formData);
+    await DatabaseHelper.instance.insertUser(
+        formData['firstName'], formData['age']); // Save to database
+    try {
+      await platform.invokeMethod("submitFormJson", formData);
+    } catch (e) {
+      print("Error invoking method: $e");
+    }
+  }
+
+  void sendDataViaApi() async {
+    try {
+      await NativeBridge.sendDataToServer();
+    } catch (e) {
+      print("Error sending data: $e");
+    }
   }
 
   @override
@@ -63,9 +80,7 @@ class _FlutterFormScreenState extends State<FlutterFormScreen> {
                 decoration: InputDecoration(
                   labelText: formJson['formFields'][key]['label'],
                 ),
-                keyboardType: formJson['formFields'][key]['type'] == "NUMBER"
-                    ? TextInputType.number
-                    : TextInputType.text,
+                keyboardType: TextInputType.text,
               ),
               SizedBox(height: 16),
             ],

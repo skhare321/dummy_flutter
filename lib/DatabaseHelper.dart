@@ -1,40 +1,44 @@
-// import 'package:sqflite/sqflite.dart';
-// import 'package:path/path.dart';
-//
-// class DatabaseHelper {
-//   static final DatabaseHelper _instance = DatabaseHelper._internal();
-//   factory DatabaseHelper() => _instance;
-//   static Database? _database;
-//
-//   DatabaseHelper._internal();
-//
-//   Future<Database> get database async {
-//     if (_database != null) return _database!;
-//     _database = await _initDatabase();
-//     return _database!;
-//   }
-//
-//   Future<Database> _initDatabase() async {
-//     String path = join(await getDatabasesPath(), 'your_database.db');
-//     return await openDatabase(
-//       path,
-//       version: 1,
-//       onCreate: (db, version) {
-//         return db.execute(
-//           'CREATE TABLE users(id INTEGER PRIMARY KEY, name TEXT, age INTEGER)',
-//         );
-//       },
-//     );
-//   }
-//
-//   Future<void> insertUser(Map<String, dynamic> user) async {
-//     final db = await database;
-//     await db.insert(
-//       'users',
-//       user,
-//       conflictAlgorithm: ConflictAlgorithm.replace,
-//     );
-//   }
-//
-// // Add more database helper methods as needed
-// }
+import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
+
+class DatabaseHelper {
+  DatabaseHelper();
+  DatabaseHelper.database();
+  static final DatabaseHelper instance = DatabaseHelper._internal();
+  Database? _database;
+
+  DatabaseHelper._internal();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+    _database = await _initDatabase();
+    return _database!;
+  }
+
+  Future<Database> _initDatabase() async {
+    final path = await getDatabasesPath();
+    return openDatabase(
+      join(path, 'app_data.db'),
+      version: 1,
+      onCreate: (db, version) {
+        db.execute(
+          "CREATE TABLE user(id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, age TEXT)",
+        );
+      },
+    );
+  }
+
+  Future<void> insertUser(String name, String age) async {
+    final db = await database;
+    await db.insert(
+      'user',
+      {'name': name, 'age': age},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getUsers() async {
+    final db = await database;
+    return await db.query('user');
+  }
+}
